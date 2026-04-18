@@ -1,0 +1,18 @@
+[Unit]
+Description=Subgen Failure Monitor
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=mediauser
+Group=media
+SupplementaryGroups=docker
+WorkingDirectory=/opt/subgen
+EnvironmentFile=-/opt/subgen/monitor.env
+ExecStart=/usr/bin/python3 /opt/subgen/monitor_subgen_failures.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

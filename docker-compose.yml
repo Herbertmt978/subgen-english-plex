@@ -1,0 +1,40 @@
+services:
+  subgen:
+    container_name: subgen
+    image: mccloud/subgen:latest
+    restart: unless-stopped
+    cpus: 8.0
+    ports:
+      - "9000:9000"
+    environment:
+      - PUID=1000
+      - PGID=1001
+      - WEBHOOK_PORT=9000
+      - TRANSCRIBE_DEVICE=cpu
+      - WHISPER_MODEL=medium
+      - COMPUTE_TYPE=int8
+      - CONCURRENT_TRANSCRIPTIONS=1
+      - WHISPER_THREADS=8
+      - TRANSCRIBE_FOLDERS=/media/PlexFilmsHD|/media/PlexFilms|/media/PlexTVHD|/media/PlexTV
+      - MONITOR=True
+      - PROCESS_ADDED_MEDIA=True
+      - PROCESS_MEDIA_ON_PLAY=False
+      - MODEL_PATH=/subgen/models
+      - TRANSCRIBE_OR_TRANSLATE=translate
+      - SUBTITLE_LANGUAGE_NAME=en
+      - SUBTITLE_LANGUAGE_NAMING_TYPE=ISO_639_1
+      - SHOULD_WHISPER_DETECT_AUDIO_LANGUAGE=True
+      - NOTIFY_ON_ENGLISH_AUDIO_MISMATCH=True
+      - SKIP_IF_TARGET_SUBTITLES_EXIST=True
+      - SKIP_IF_EXTERNAL_SUBTITLES_EXIST=True
+      - CLEAR_VRAM_ON_COMPLETE=True
+      - MODEL_CLEANUP_DELAY=30
+      - SKIP_VIDEO_EXTENSIONS=.avi
+      - DEBUG=False
+    volumes:
+      - /srv/media/PlexFilmsHD:/media/PlexFilmsHD
+      - /srv/media/PlexFilms:/media/PlexFilms
+      - /srv/media/PlexTVHD:/media/PlexTVHD
+      - /srv/media/PlexTV:/media/PlexTV
+      - /opt/subgen/models:/subgen/models
+      - ./subgen_override.py:/subgen/subgen.py
