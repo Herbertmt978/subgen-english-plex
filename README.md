@@ -96,7 +96,7 @@ That is closer to the kind of move you would make if you want Subgen off the Ple
 
 If you just want the short version:
 
-1. Put the repo on the Plex host, for example at `/opt/subgen`.
+1. Put the repo on the host that will actually run Subgen, for example at `/opt/subgen`.
 2. Edit `docker-compose.yml` so the paths and user IDs match your server.
 3. Create the model folder if it does not exist.
 4. Start it with `docker compose up -d`.

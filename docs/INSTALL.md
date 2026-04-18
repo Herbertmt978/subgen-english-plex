@@ -2,7 +2,7 @@
 
 This guide assumes a fairly normal setup:
 
-- Docker already works on the Plex host
+- Docker already works on the host that will run Subgen
 - your media is mounted somewhere sensible on that host
 - you are happy editing a text file and copying a few files around
 
@@ -22,7 +22,7 @@ Before first boot, assume you need to review these three files:
 
 ## 1. Put the repo somewhere sensible
 
-Copy or clone the repo onto the Plex host. In the examples below, I use:
+Copy or clone the repo onto the machine that will run Subgen. In the examples below, I use:
 
 ```bash
 /opt/subgen
