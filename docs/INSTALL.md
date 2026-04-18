@@ -1,29 +1,29 @@
 # Install Guide
 
-This guide assumes:
+This guide assumes a fairly normal setup:
 
-- you already have Docker working on the Plex host
-- your Plex media is mounted somewhere on the host
-- you are comfortable copying files and editing a text file
+- Docker already works on the Plex host
+- your media is mounted somewhere sensible on that host
+- you are happy editing a text file and copying a few files around
 
-If that is true, the setup is straightforward.
+If that sounds about right, this should be straightforward.
 
-One important note before you start:
+One thing to keep in mind before you start:
 
 - every path, username, and email shown in this repo is an example
-- you are expected to replace them with the values that make sense on your own server
+- you are expected to swap those for the values that make sense on your own machine
 
-## 1. Put the repo on the Plex host
+## 1. Put the repo somewhere sensible
 
-Clone or copy the repository to the server. In the example below, we use:
+Copy or clone the repo onto the Plex host. In the examples below, I use:
 
 ```bash
 /opt/subgen
 ```
 
-If you choose a different location, that is fine. Just be consistent when you install the systemd service later.
+If you prefer another location, that is fine. Just remember to keep the systemd service in sync with whatever location you choose.
 
-## 2. Check your media paths
+## 2. Check the media paths first
 
 Open `docker-compose.yml` and look at the `volumes:` section.
 
@@ -36,23 +36,23 @@ The example uses:
 - /srv/media/PlexTV:/media/PlexTV
 ```
 
-The left side is the real path on your server.
-The right side is the path Subgen sees inside the container.
+The left side is the real folder on your server.
+The right side is the folder path Subgen sees inside the container.
 
-If your server stores media somewhere else, change the left side only.
+If your media lives somewhere else, change the left side only. The `/media/...` part on the right is part of the internal layout used by this setup.
 
-## 3. Check your user and group IDs
+## 3. Check the user and group IDs
 
-In the same compose file, check:
+In the same compose file, look at:
 
 ```yaml
 - PUID=1000
 - PGID=1001
 ```
 
-These tell the container which Linux user and group to act as when it reads and writes files.
+These tell the container which Linux user and group it should act as when reading and writing files.
 
-If subtitles are not being written, wrong IDs are one of the first things to check.
+If subtitles are not being written at all, this is one of the first places I would check.
 
 To find the right values on your host:
 
@@ -62,7 +62,7 @@ id
 
 ## 4. Create the model folder
 
-The compose file expects this folder to exist:
+The compose file expects a model folder at:
 
 ```bash
 /opt/subgen/models
@@ -74,7 +74,7 @@ Create it if needed:
 mkdir -p /opt/subgen/models
 ```
 
-Subgen will download Whisper models into that folder.
+Subgen will download the Whisper models there the first time it needs them.
 
 ## 5. Start Subgen
 
@@ -84,7 +84,7 @@ From the repo folder:
 docker compose up -d
 ```
 
-Then check the container:
+Then check the basics:
 
 ```bash
 docker ps
@@ -92,22 +92,22 @@ docker logs --tail 100 subgen
 curl http://127.0.0.1:9000/status
 ```
 
-If everything is healthy, `/status` should return a small JSON response with the Subgen version.
+If `/status` returns a small JSON response, the container is alive and listening.
 
 ## 6. Set up the monitor
 
-The monitor script does two jobs:
+The monitor does two useful jobs:
 
 - it keeps a readable summary of failures
-- it deletes files that repeatedly break processing, so the queue does not get stuck
+- it deletes files that repeatedly jam the queue
 
-Copy the example file:
+Copy the example config:
 
 ```bash
 cp monitor.env.example monitor.env
 ```
 
-You can leave it mostly unchanged if you do not want email alerts yet.
+You can leave it mostly alone to start with. If you do not want email alerts yet, that is perfectly fine.
 
 ## 7. Install the monitor as a service
 
@@ -117,14 +117,14 @@ Copy the systemd unit:
 sudo cp systemd/subgen-monitor.service /etc/systemd/system/subgen-monitor.service
 ```
 
-Then reload systemd and enable the service:
+Then reload systemd and enable it:
 
 ```bash
 sudo systemctl daemon-reload
 sudo systemctl enable --now subgen-monitor.service
 ```
 
-Check it:
+Check that it is running:
 
 ```bash
 systemctl status subgen-monitor.service
@@ -132,49 +132,51 @@ systemctl status subgen-monitor.service
 
 ## 8. Know where to look later
 
-These are the most useful files after install:
+When something goes wrong, these are the files and commands that usually help first:
 
 - `docker logs subgen`
-  Live Subgen activity
+  What Subgen is doing right now
 - `monitor/subgen_failed_files.txt`
-  Human-readable summary
+  The short human-readable summary
 - `monitor/subgen_failed_events.log`
-  Detailed event history
+  The longer event log
 
 ## 9. Optional: email alerts
 
-Email is only used for one thing here:
+Email is only used here for one specific case:
 
-- a file looks like it should be English based on audio metadata, but Whisper detects another language
+- the file looks like it ought to be English based on its audio metadata
+- but Whisper detects another language
 
-That usually means one of two things:
+In practice that usually means one of three things:
 
-- the file metadata is wrong
-- the content includes a lot of non-English dialogue
+- the metadata is wrong
+- the content is mixed-language
+- the file is odd enough that you may want to inspect it by hand
 
-To enable email, fill in the SMTP settings in `monitor.env`.
+If you want those alerts, fill in the SMTP values in `monitor.env`.
 
-If you leave them blank, the system still works. It just records those events without sending mail.
+If you leave them blank, nothing breaks. The monitor still records the events. It just does not send email.
 
-## 10. How to tell it is really working
+## 10. How to tell it is doing useful work
 
-Healthy logs usually look like one of these:
+Healthy logs usually look like some mix of:
 
-- "Skipping ... Subtitles already exist in English."
-- "WORKER START ..."
-- "Detected language: English"
-- "WORKER FINISH ..."
+- `Skipping ... Subtitles already exist in English.`
+- `WORKER START ...`
+- `Detected language: English`
+- `WORKER FINISH ...`
 
-That means the queue is alive and Subgen is making decisions.
+That is what a healthy queue looks like: it skips the files that are already covered and works through the rest.
 
-## 11. If CPU use feels too high
+## 11. If the server feels too busy
 
-The first settings to change are:
+The first settings worth changing are:
 
 - `WHISPER_THREADS`
 - `WHISPER_MODEL`
 - `cpus`
 
-Lowering them makes the server calmer, but slower.
+Lower values make the server calmer, but they also make subtitle generation slower.
 
-The included defaults are a compromise rather than a benchmark winner.
+The defaults in this repo were chosen to be livable, not to win any speed contest.

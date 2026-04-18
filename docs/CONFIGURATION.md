@@ -1,237 +1,182 @@
 # Configuration Guide
 
-This file explains the important settings in plain English.
+This is not a full Subgen reference. It is the shortlist of settings that actually matter in this setup.
 
-Not every option in Subgen is listed here. Only the ones that matter for this setup.
+## `cpus: 8.0`
 
-## Docker-level settings
+This is the broad "do not get greedy" limit.
 
-### `cpus: 8.0`
+It tells Docker not to let the container use much more than eight CPU cores in total. That gives Subgen room to work without letting it sprawl all over the machine.
 
-This is a Docker limit.
+If the server feels too busy, lower it.
+If the server has plenty of headroom, you can raise it, but do it gradually.
 
-It tells Docker not to let this container use more than roughly eight CPU cores in total.
+## `PUID` and `PGID`
 
-Why it is here:
+These tell the container which Linux user and group it should act as.
 
-- Subgen can be quite heavy while transcribing.
-- Plex still needs room to breathe.
+If these are wrong, the usual symptoms are boring but annoying:
 
-If your server feels too busy:
+- Subgen can read files but not write subtitles
+- subtitle files are created with awkward ownership
+- permissions look wrong even though the container itself is running fine
 
-- lower this to `6.0` or `4.0`
+In most setups these should match the account that already owns the media folders.
 
-If the server is powerful and mostly idle:
+## `TRANSCRIBE_OR_TRANSLATE=translate`
 
-- you can raise it, but do it gradually
-
-## File access settings
-
-### `PUID` and `PGID`
-
-These tell the container which Linux user and group it should behave as.
-
-Why they matter:
-
-- if they are wrong, Subgen may read files but fail to write subtitles
-- or it may write files with awkward permissions
-
-For most people, these should match the account that already owns the media folders.
-
-## Core behaviour
-
-### `TRANSCRIBE_OR_TRANSLATE=translate`
-
-This is the setting that makes the setup produce English subtitles from non-English speech.
+This is the setting that changes the whole personality of the setup.
 
 In simple terms:
 
-- `transcribe` means "write subtitles in the same language that is spoken"
+- `transcribe` means "write subtitles in the language being spoken"
 - `translate` means "write subtitles in English"
 
-This repo uses `translate` on purpose.
+This repo uses `translate` on purpose. If you change that, you are changing the point of the setup.
 
-### `SUBTITLE_LANGUAGE_NAME=en`
+## `SUBTITLE_LANGUAGE_NAME=en`
 
-This tells Subgen how to name the subtitle files it creates.
+This affects how subtitle files are named.
 
-So instead of a vague custom label, the output is clearly marked as English.
+It makes the output clearly show up as English rather than some vague custom label.
 
-### `SHOULD_WHISPER_DETECT_AUDIO_LANGUAGE=True`
+## `SHOULD_WHISPER_DETECT_AUDIO_LANGUAGE=True`
 
-This tells the script to let Whisper detect the spoken language when needed.
+This lets Whisper work out the spoken language when needed.
 
-That matters because translation only works properly if the system has a decent idea what language it is hearing.
+That matters because translation only works properly if the system has a decent guess at what it is hearing.
 
-## Performance settings
+## `WHISPER_MODEL=medium`
 
-### `WHISPER_MODEL=medium`
+This is one of the main performance levers.
 
-This chooses the Whisper model size.
+The rough trade-off is:
 
-Roughly speaking:
+- smaller model = lighter and faster, but usually less accurate
+- larger model = heavier and slower, but usually better
 
-- smaller model = lighter, faster, less accurate
-- larger model = heavier, slower, usually more accurate
+`medium` is the default here because it is a decent middle ground for a home Plex server. It is good enough to be useful without feeling needlessly heavy.
 
-Why `medium` is used here:
+If you want it gentler on the CPU, try `small`.
+If you want to push accuracy harder and have CPU to spare, try `large-v3-turbo`.
 
-- it is a sensible middle ground for a home Plex host
-- it avoids the heavier footprint of `large-v3-turbo`
+## `WHISPER_THREADS=8`
 
-If you want to be gentler on the CPU:
+This controls how hard Whisper is allowed to lean on the CPU.
 
-- try `small`
+More threads usually means faster work, but also more pressure on the server. If Plex feels sluggish while Subgen is running, this is one of the first settings worth trimming.
 
-If you care more about accuracy and have CPU to spare:
+## `CONCURRENT_TRANSCRIPTIONS=1`
 
-- try `large-v3-turbo`
+This means one active job at a time, and that is deliberate.
 
-### `WHISPER_THREADS=8`
+Running several transcription jobs at once sounds efficient, but on a Plex box it often just makes everything feel busier without much satisfaction in return.
 
-This controls how many CPU threads Whisper is allowed to use.
+## `COMPUTE_TYPE=int8`
 
-More threads usually means faster work, but also more pressure on the server.
+You do not need the low-level explanation here. The short version is:
 
-For non-technical users, the easiest rule is:
+- it is a lighter CPU-friendly inference mode
+- it helps keep resource use sensible
+- it is a good fit for this kind of setup
 
-- if Plex feels sluggish while Subgen runs, lower this
-- if the server is calm and you want faster subtitle generation, raise it slowly
+## `TRANSCRIBE_FOLDERS`
 
-### `CONCURRENT_TRANSCRIPTIONS=1`
+This is the list of folders Subgen watches and scans.
 
-This means only one item is actively processed at a time.
-
-That is deliberate.
-
-Running several jobs at once sounds attractive, but in practice it often makes the server feel worse without giving a neat, predictable speed-up.
-
-### `COMPUTE_TYPE=int8`
-
-This is a lighter inference mode for the CPU.
-
-You do not need to understand the low-level details. The short version is:
-
-- it helps reduce resource use
-- it is a sensible choice for CPU-based Whisper on a home server
-
-## Library scanning
-
-### `TRANSCRIBE_FOLDERS`
-
-This is the list of media folders Subgen should watch and scan.
-
-The format uses `|` between folders:
+The format uses `|` between entries:
 
 ```text
 /media/PlexFilmsHD|/media/PlexFilms|/media/PlexTVHD|/media/PlexTV
 ```
 
-Only include the folders you actually want processed.
+Only list folders you genuinely want it touching.
 
-### `MONITOR=True`
+## `MONITOR=True`
 
-This tells Subgen to keep watching those folders for new files.
+This tells Subgen to keep watching those folders after the first scan.
 
-So once the initial scan is done, it can still pick up new media later.
+Without it, you are closer to a one-off pass. With it, new files can still be picked up later.
 
-### `PROCESS_ADDED_MEDIA=True`
+## `PROCESS_ADDED_MEDIA=True`
 
-This tells it to process newly added files.
+This says new media should be processed.
 
-### `PROCESS_MEDIA_ON_PLAY=False`
+## `PROCESS_MEDIA_ON_PLAY=False`
 
-This tells it not to wait until someone presses play before doing work.
+This says do not wait until somebody presses play before doing the work.
 
-That is usually the better choice if you want subtitles ready in advance.
+That is usually the better choice if you want subtitles ready in advance instead of discovered at the last possible moment.
 
-## Subtitle safety checks
+## `SKIP_IF_TARGET_SUBTITLES_EXIST=True`
 
-### `SKIP_IF_TARGET_SUBTITLES_EXIST=True`
+This is the main anti-duplication setting.
 
-This says:
+It effectively says:
 
 "If English subtitles already exist, do not do the job again."
 
-That is one of the most important safety settings in the file.
+That saves time and stops the library filling up with duplicate subtitle files.
 
-It prevents wasted work and duplicate subtitles.
+## `SKIP_IF_EXTERNAL_SUBTITLES_EXIST=True`
 
-### `SKIP_IF_EXTERNAL_SUBTITLES_EXIST=True`
+This is the second line of defence against duplication.
 
-This is another protection against duplication.
+If the file already has external subtitles, Subgen will usually leave it alone.
 
-If the file already has external subtitles present, Subgen will usually leave it alone.
+## `CLEAR_VRAM_ON_COMPLETE=True`
 
-## Cleanup and stability
+This comes from the original Subgen style of config.
 
-### `CLEAR_VRAM_ON_COMPLETE=True`
+On a CPU-based setup it is mostly harmless. There is no real need to overthink it here.
 
-This comes from the original Subgen configuration style.
+## `MODEL_CLEANUP_DELAY=30`
 
-On a CPU-based setup it is mostly harmless, and leaving it enabled is fine.
+This tells the script to wait a little before unloading the model after the queue goes quiet.
 
-### `MODEL_CLEANUP_DELAY=30`
+That helps avoid a silly pattern where the model is constantly unloaded and reloaded if a few files arrive close together.
 
-This tells the script to wait a little before unloading the model after the queue goes idle.
+## `SKIP_VIDEO_EXTENSIONS=.avi`
 
-That helps avoid constant unloading and reloading if several files arrive close together.
+This setup skips `.avi` files.
 
-### `SKIP_VIDEO_EXTENSIONS=.avi`
+That was left in because older containers and oddball encodes are often more trouble than they are worth. If you have AVI files you genuinely care about, you can remove it, but I would do that deliberately rather than casually.
 
-This setup skips `.avi` files entirely.
+## `NOTIFY_ON_ENGLISH_AUDIO_MISMATCH=True`
 
-That was left in place because older container formats and odd encodes are more likely to be trouble than help.
-
-If your library has important AVI files you really want handled, you can remove this, but do it with your eyes open.
-
-## Alerting and custom behaviour
-
-### `NOTIFY_ON_ENGLISH_AUDIO_MISMATCH=True`
-
-This is part of the custom Python override.
+This belongs to the custom Python override, not plain stock Subgen.
 
 It means:
 
-- if the file metadata suggests English audio
-- but Whisper detects another language
-- write that down and optionally send an email
+- if the file metadata suggests there is English audio
+- but Whisper hears another language
+- record that fact and optionally send an email
 
-This is useful for catching awkward edge cases.
-
-For example:
-
-- a Korean or French film tagged strangely
-- mixed-language content
-- bad metadata inside the file
+It is mainly there for awkward edge cases, not for the happy path.
 
 ## Monitor settings
 
-These live in `monitor.env`, not the Docker compose file.
+These live in `monitor.env`, not in the main Docker compose file.
 
-### `AUTO_DELETE_FAILED_FILES=true`
+## `AUTO_DELETE_FAILED_FILES=true`
 
-This is a strong setting.
+This is the setting that deserves the most respect.
 
-It means the monitor will delete files that repeatedly trip the known failure patterns in Subgen logs.
+It means the monitor will delete files that repeatedly trip the known failure patterns in the Subgen logs.
 
-Why somebody might want this:
+Why somebody might want it:
 
 - one bad file can jam the queue for ages
-- the monitor acts as a self-healing safety valve
+- this gives the setup a way to recover by itself
 
-Why somebody might not want this:
+Why somebody might hesitate:
 
 - deleted really means deleted
-- a false positive would still remove the file
+- a false positive would still hurt
 
-If you prefer a safer mode at first:
+If you want to be cautious, start with it set to `false`, watch the summary file for a while, and only turn it on once you are happy with how it behaves.
 
-- set this to `false`
-- watch the summary file for a while
-- turn it on later when you are comfortable
-
-### SMTP settings
+## SMTP settings
 
 These are only needed if you want email alerts:
 
@@ -243,14 +188,12 @@ These are only needed if you want email alerts:
 - `SMTP_TO`
 - `SMTP_USE_TLS`
 
-If these are blank, the monitor still logs the events. It just does not send any mail.
+If they are blank, the monitor still records the events. It just does not send any mail.
 
-## The one setting most people should not touch
+## `./subgen_override.py:/subgen/subgen.py`
 
-### `./subgen_override.py:/subgen/subgen.py`
+This line is what turns the setup from "stock Subgen with env vars" into "stock container plus custom runtime behaviour".
 
-This line is what makes the setup run the custom script.
+If you remove it, you are no longer running this repo's behaviour. You are back to the stock Subgen script plus whatever environment variables remain.
 
-If you remove it, you are no longer using this customised behaviour. You are back to stock Subgen behaviour plus whatever environment variables remain.
-
-That is fine if it is a deliberate choice. It is not fine if it happens by accident.
+That is fine if it is a deliberate choice. It is not the sort of thing you want to remove by accident.
