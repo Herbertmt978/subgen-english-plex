@@ -68,12 +68,12 @@ In plain terms:
 ## What it is not trying to do
 
 - It is not trying to preserve every bad file forever.
-- It is not trying to make Intel Quick Sync run Whisper. Plex can use the Intel iGPU for video transcoding, but this Subgen setup runs Whisper on CPU.
+- It is not trying to make Intel Quick Sync run Whisper. Plex can use the Intel iGPU for video transcoding, but Whisper itself is better suited either to CPU or to a proper NVIDIA CUDA setup.
 - It is not trying to hide every decision behind "smart defaults". A few settings are left visible on purpose because they are the ones people usually need to change.
 
 ## Resource profile
 
-The included compose file is intentionally moderate:
+The included compose file is intentionally moderate and CPU-friendly:
 
 - `cpus: 8.0`
 - `WHISPER_MODEL=medium`
@@ -82,6 +82,15 @@ The included compose file is intentionally moderate:
 - `COMPUTE_TYPE=int8`
 
 That is not the fastest possible setup. It is the kind of setup you can actually live with on a Plex machine that is doing other work.
+
+If you are running on an NVIDIA box instead, the usual changes are:
+
+- `TRANSCRIBE_DEVICE=cuda`
+- `COMPUTE_TYPE=float16`
+- `gpus: all`
+- a larger model such as `large-v3-turbo`
+
+That is closer to the kind of move you would make if you want Subgen off the Plex CPU and onto a separate GPU-backed VM.
 
 ## Quick start
 
@@ -93,6 +102,8 @@ If you just want the short version:
 4. Start it with `docker compose up -d`.
 5. Copy `monitor.env.example` to `monitor.env` if you want monitor settings of your own.
 6. Install the systemd monitor service.
+
+If you are deploying onto an NVIDIA host rather than a Plex CPU box, also switch the transcribe device and GPU-related settings first. [docs/CONFIGURATION.md](./docs/CONFIGURATION.md) now calls those out directly.
 
 The slower, more useful version is in [docs/INSTALL.md](./docs/INSTALL.md).
 

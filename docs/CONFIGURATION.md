@@ -11,6 +11,8 @@ It tells Docker not to let the container use much more than eight CPU cores in t
 If the server feels too busy, lower it.
 If the server has plenty of headroom, you can raise it, but do it gradually.
 
+On a separate GPU worker you may still want a CPU cap, but it does not need to do as much of the heavy lifting as a CPU-only Plex box.
+
 ## `PUID` and `PGID`
 
 These tell the container which Linux user and group it should act as.
@@ -33,6 +35,15 @@ In simple terms:
 - `translate` means "write subtitles in English"
 
 This repo uses `translate` on purpose. If you change that, you are changing the point of the setup.
+
+## `TRANSCRIBE_DEVICE`
+
+This is the big split between a CPU install and an NVIDIA install.
+
+- `cpu` is the safe default for a plain Linux box
+- `cuda` is what you want on an NVIDIA host
+
+If you are moving Subgen onto a separate VM because it has a real NVIDIA GPU, this is one of the settings you should change first.
 
 ## `SUBTITLE_LANGUAGE_NAME=en`
 
@@ -60,6 +71,8 @@ The rough trade-off is:
 If you want it gentler on the CPU, try `small`.
 If you want to push accuracy harder and have CPU to spare, try `large-v3-turbo`.
 
+If you are on an NVIDIA GPU, `large-v3-turbo` is often the more sensible place to start.
+
 ## `WHISPER_THREADS=8`
 
 This controls how hard Whisper is allowed to lean on the CPU.
@@ -79,6 +92,14 @@ You do not need the low-level explanation here. The short version is:
 - it is a lighter CPU-friendly inference mode
 - it helps keep resource use sensible
 - it is a good fit for this kind of setup
+
+If you switch to `TRANSCRIBE_DEVICE=cuda`, the usual companion setting is `COMPUTE_TYPE=float16`.
+
+## `gpus: all`
+
+This is only relevant on an NVIDIA Docker host.
+
+It tells Docker to actually hand the GPU through to the container. If you set `TRANSCRIBE_DEVICE=cuda` but forget this part, the container will start and then disappoint you.
 
 ## `TRANSCRIBE_FOLDERS`
 

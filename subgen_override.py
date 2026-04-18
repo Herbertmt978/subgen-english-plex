@@ -298,9 +298,28 @@ class DeduplicatedQueue(queue.PriorityQueue):
         self._processing = set() # Tracks task IDs currently being handled
         self._lock = Lock()
 
+    def _task_id_for_item(self, item):
+        task_type = item.get("type", "transcribe")
+        task_path = item["path"]
+        if task_type == "detect_language":
+            return f"detect_language::{task_path}"
+        if task_type == "asr":
+            return f"asr::{task_path}"
+        return task_path
+
+    def _related_task_ids(self, task_id):
+        if "::" in task_id:
+            return {task_id}
+
+        return {
+            task_id,
+            f"detect_language::{task_id}",
+            f"asr::{task_id}",
+        }
+
     def put(self, item, block=True, timeout=None):
         with self._lock:
-            task_id = item["path"]
+            task_id = self._task_id_for_item(item)
             if task_id not in self._queued and task_id not in self._processing:
                 # Priority: 0 (Detect), 1 (ASR), 2 (Transcribe)
                 task_type = item.get("type", "transcribe")
@@ -316,14 +335,14 @@ class DeduplicatedQueue(queue.PriorityQueue):
         # PriorityQueue returns the tuple, we want just the item
         priority, timestamp, item = super().get(block, timeout)
         with self._lock:
-            task_id = item["path"]
+            task_id = self._task_id_for_item(item)
             self._queued.discard(task_id)
             self._processing.add(task_id)
         return item
 
     def mark_done(self, item):
         with self._lock:
-            task_id = item["path"]
+            task_id = self._task_id_for_item(item)
             self._processing.discard(task_id)
 
     def is_idle(self):
@@ -333,7 +352,8 @@ class DeduplicatedQueue(queue.PriorityQueue):
     def is_active(self, task_id):
         """Checks if a task_id is currently queued or processing."""
         with self._lock:
-            return task_id in self._queued or task_id in self._processing
+            related_ids = self._related_task_ids(task_id)
+            return any(related_id in self._queued or related_id in self._processing for related_id in related_ids)
 
     def get_queued_tasks(self):
         with self._lock:

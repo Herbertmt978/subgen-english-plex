@@ -187,3 +187,9 @@ The first settings worth changing are:
 Lower values make the server calmer, but they also make subtitle generation slower.
 
 The defaults in this repo were chosen to be livable, not to win any speed contest.
+
+If you are installing onto a separate NVIDIA machine instead of your Plex host, that is usually the cleaner answer. In that case, change:
+
+- `TRANSCRIBE_DEVICE` to `cuda`
+- `COMPUTE_TYPE` to `float16`
+- add GPU access in Docker with `gpus: all`
