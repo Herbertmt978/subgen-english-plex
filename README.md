@@ -14,6 +14,12 @@ It is not trying to be a universal Subgen starter kit. It is a practical setup f
 
 Everything in this repo that looks like a path, username, hostname, or email address is an example placeholder. Nothing here is meant to be pasted into a live server unchanged.
 
+One practical consequence of that:
+
+- the Python scripts in this repo are the real logic
+- the compose file, service file, and monitor example config are safe public templates
+- you should expect to edit those template files before first use
+
 ## What is actually in the repo
 
 - `docker-compose.yml`
@@ -89,6 +95,12 @@ If you just want the short version:
 6. Install the systemd monitor service.
 
 The slower, more useful version is in [docs/INSTALL.md](./docs/INSTALL.md).
+
+If you are reading this because somebody sent you the repo link, the three files you should assume need editing are:
+
+- `docker-compose.yml`
+- `systemd/subgen-monitor.service`
+- `monitor.env`
 
 ## Why the docs sound like this
 

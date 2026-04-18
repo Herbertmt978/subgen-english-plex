@@ -12,6 +12,13 @@ One thing to keep in mind before you start:
 
 - every path, username, and email shown in this repo is an example
 - you are expected to swap those for the values that make sense on your own machine
+- the Python scripts are the real logic, but the deployment files are example scaffolding
+
+Before first boot, assume you need to review these three files:
+
+- `docker-compose.yml`
+- `systemd/subgen-monitor.service`
+- `monitor.env` if you create one
 
 ## 1. Put the repo somewhere sensible
 
