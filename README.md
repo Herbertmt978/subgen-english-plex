@@ -74,7 +74,7 @@ The image name is:
 ghcr.io/herbertmt978/subgen-english-plex
 ```
 
-Once the workflow publishes the image, people can either:
+The workflow publishes the image to GHCR, so people can either:
 
 - pull the package directly with Docker
 - or use `docker-compose.ghcr.yml` as their starting point instead of the source-based compose file
@@ -143,6 +143,8 @@ For a normal first install, those are the three files you should expect to look 
 The Python files are the real logic, but most people should not need to edit them just to get started.
 
 If you are using the packaged image from GitHub Container Registry rather than running from source, the file you will usually edit is `docker-compose.ghcr.yml` instead of `docker-compose.yml`.
+
+If you just want the least fiddly public install, start with `docker-compose.ghcr.yml`. It uses the already-published image and avoids the local bind-mounted override.
 
 ### 1. Decide where Subgen will run
 
