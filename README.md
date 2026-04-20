@@ -92,26 +92,187 @@ If you are running on an NVIDIA box instead, the usual changes are:
 
 That is closer to the kind of move you would make if you want Subgen off the Plex CPU and onto a separate GPU-backed VM.
 
-## Quick start
+## First-time setup
 
-If you just want the short version:
+If you are new to this repo, the easiest way to think about it is:
 
-1. Put the repo on the host that will actually run Subgen, for example at `/opt/subgen`.
-2. Edit `docker-compose.yml` so the paths and user IDs match your server.
-3. Create the model folder if it does not exist.
-4. Start it with `docker compose up -d`.
-5. Copy `monitor.env.example` to `monitor.env` if you want monitor settings of your own.
-6. Install the systemd monitor service.
+- `docker-compose.yml` runs Subgen itself
+- `systemd/subgen-monitor.service` keeps the helper monitor alive after reboot
+- `monitor.env` is optional monitor configuration, mainly deletion behaviour and SMTP
 
-If you are deploying onto an NVIDIA host rather than a Plex CPU box, also switch the transcribe device and GPU-related settings first. [docs/CONFIGURATION.md](./docs/CONFIGURATION.md) now calls those out directly.
+For a normal first install, those are the three files you should expect to look at.
 
-The slower, more useful version is in [docs/INSTALL.md](./docs/INSTALL.md).
+The Python files are the real logic, but most people should not need to edit them just to get started.
 
-If you are reading this because somebody sent you the repo link, the three files you should assume need editing are:
+### 1. Decide where Subgen will run
 
-- `docker-compose.yml`
-- `systemd/subgen-monitor.service`
-- `monitor.env`
+Pick the machine that will actually do the subtitle work.
+
+- If you are keeping it on a Plex box, the CPU-friendly defaults in this repo are a sensible starting point.
+- If you have a separate NVIDIA machine, that is often the cleaner place to run it. In that case you will want `TRANSCRIBE_DEVICE=cuda`, `COMPUTE_TYPE=float16`, and `gpus: all`.
+
+For the rest of the examples below, I will assume the repo lives at:
+
+```bash
+/opt/subgen
+```
+
+### 2. Put the repo on that machine
+
+Copy or clone the repo onto the host that will run Subgen.
+
+```bash
+cd /opt
+git clone <your-repo-url> subgen
+cd /opt/subgen
+```
+
+If you already put it somewhere else, that is fine. Just remember to keep the systemd service paths in sync with the folder you chose.
+
+### 3. Edit `docker-compose.yml`
+
+This is the file that matters most. It controls:
+
+- which media folders Subgen can see
+- which user it runs as
+- whether it uses CPU or NVIDIA CUDA
+- which Whisper model and limits it uses
+
+The first part most people need to change is the `volumes:` section:
+
+```yaml
+- /srv/media/PlexFilmsHD:/media/PlexFilmsHD
+- /srv/media/PlexFilms:/media/PlexFilms
+- /srv/media/PlexTVHD:/media/PlexTVHD
+- /srv/media/PlexTV:/media/PlexTV
+```
+
+The left side is your real host path.
+The right side is the path Subgen expects inside the container.
+
+If your media folders live somewhere else, change the left side only.
+
+### 4. Check `PUID` and `PGID`
+
+These tell the container which Linux user and group it should act as when it reads media files and writes subtitles.
+
+Find the right values on the host:
+
+```bash
+id
+```
+
+Then update the matching lines in `docker-compose.yml`:
+
+```yaml
+- PUID=1000
+- PGID=1001
+```
+
+If these are wrong, the usual symptom is simple: Subgen starts, but subtitles do not get written properly.
+
+### 5. Choose CPU mode or NVIDIA mode
+
+If you are staying on a normal Linux host, the included defaults are already set up to be moderate and CPU-friendly.
+
+If you are moving Subgen onto an NVIDIA machine, these are the main things to change in `docker-compose.yml`:
+
+```yaml
+gpus: all
+environment:
+  - TRANSCRIBE_DEVICE=cuda
+  - COMPUTE_TYPE=float16
+  - WHISPER_MODEL=large-v3-turbo
+```
+
+If the machine does not actually have an NVIDIA GPU available to Docker, do not turn this on.
+
+If you skip the GPU part on an NVIDIA host, the container will still run, but it will not actually use CUDA the way you expect.
+
+### 6. Create the folders Subgen expects
+
+At minimum, create the model folder before first boot:
+
+```bash
+mkdir -p /opt/subgen/models
+```
+
+If you also plan to use the helper monitor, it is tidy to create the monitor folder too:
+
+```bash
+mkdir -p /opt/subgen/monitor
+```
+
+### 7. Start Subgen
+
+From the repo folder:
+
+```bash
+cd /opt/subgen
+docker compose up -d
+```
+
+That starts the container in the background.
+
+### 8. Check that the container is alive
+
+Run these three checks:
+
+```bash
+docker ps
+docker logs --tail 100 subgen
+curl http://127.0.0.1:9000/status
+```
+
+What you want to see:
+
+- the `subgen` container is running
+- the logs show either skipped files or active work
+- `/status` returns a small JSON response
+
+If that all looks right, the core install is working.
+
+### 9. Optional: create `monitor.env`
+
+The helper monitor is the part that watches logs, records failures, and optionally deletes files that repeatedly jam the queue.
+
+If you want to use it, start by copying the example:
+
+```bash
+cp monitor.env.example monitor.env
+```
+
+You can leave the SMTP lines blank if you do not want email alerts yet.
+That does not break anything. It just means the monitor will log those events without trying to send mail.
+
+### 10. Install the systemd monitor service
+
+Copy the unit file into place:
+
+```bash
+sudo cp systemd/subgen-monitor.service /etc/systemd/system/subgen-monitor.service
+```
+
+Then reload systemd and enable it:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now subgen-monitor.service
+```
+
+Check it:
+
+```bash
+systemctl status subgen-monitor.service
+```
+
+If it shows `active (running)`, the helper monitor is now surviving reboots on its own.
+
+### 11. If you want the longer walkthrough
+
+If you want the same process with more explanation, use [docs/INSTALL.md](./docs/INSTALL.md).
+
+If you want a plain-English explanation of the settings in the compose file, use [docs/CONFIGURATION.md](./docs/CONFIGURATION.md).
 
 ## Why the docs sound like this
 
