@@ -19,7 +19,7 @@ You now have two normal ways to install this repo:
 - source install: use `docker-compose.yml` and keep the override mounted from the local repo
 - package install: use `docker-compose.ghcr.yml` and pull the prebuilt image from GitHub Container Registry
 
-If you are new and just want the least fiddly setup, the package install is usually the easier one once the GHCR image exists.
+If you are new and just want the least fiddly setup, the package install is usually the easier one.
 
 Before first boot, assume you need to review these three files:
 
