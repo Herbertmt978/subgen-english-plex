@@ -1,0 +1,7 @@
+.git
+.github
+docs
+systemd
+__pycache__
+*.pyc
+monitor.env

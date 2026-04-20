@@ -18,12 +18,15 @@ One practical consequence of that:
 
 - the Python scripts in this repo are the real logic
 - the compose file, service file, and monitor example config are safe public templates
+- the repo can also publish a ready-made container image to GitHub Container Registry
 - you should expect to edit those template files before first use
 
 ## What is actually in the repo
 
 - `docker-compose.yml`
   The container definition.
+- `docker-compose.ghcr.yml`
+  The same basic setup, but pointed at the packaged image in GitHub Container Registry instead of a local bind-mounted override.
 - `subgen_override.py`
   A custom Python override that replaces the stock `subgen.py` inside the container.
 - `monitor_subgen_failures.py`
@@ -54,6 +57,45 @@ So the real shape of the setup is:
 - custom monitor
 
 That matters because some of the behaviour in this repo is not just "set these environment variables". Part of it lives in the Python override.
+
+## Package support
+
+Yes, this repo can be published as a package, but the sensible package format here is a container image, not an npm or NuGet package.
+
+The repo now includes:
+
+- a `Dockerfile` that bakes `subgen_override.py` into a custom image
+- a GitHub Actions workflow at `.github/workflows/publish-ghcr.yml`
+- a `docker-compose.ghcr.yml` example that uses the published image directly
+
+The image name is:
+
+```text
+ghcr.io/herbertmt978/subgen-english-plex
+```
+
+Once the workflow publishes the image, people can either:
+
+- pull the package directly with Docker
+- or use `docker-compose.ghcr.yml` as their starting point instead of the source-based compose file
+
+One thing worth knowing up front:
+
+- container packages in GitHub Packages start out private by default
+- if you want strangers on the internet to pull the image without signing in, you need to set the package visibility to public after the first publish
+- if you leave it private, people will need a GitHub token with package read access
+
+If you prefer the package route, the cleanest install path is usually:
+
+```bash
+docker pull ghcr.io/herbertmt978/subgen-english-plex:latest
+```
+
+or:
+
+```bash
+docker compose -f docker-compose.ghcr.yml up -d
+```
 
 ## How it is meant to behave
 
@@ -104,6 +146,8 @@ For a normal first install, those are the three files you should expect to look 
 
 The Python files are the real logic, but most people should not need to edit them just to get started.
 
+If you are using the packaged image from GitHub Container Registry rather than running from source, the file you will usually edit is `docker-compose.ghcr.yml` instead of `docker-compose.yml`.
+
 ### 1. Decide where Subgen will run
 
 Pick the machine that will actually do the subtitle work.
@@ -137,6 +181,8 @@ This is the file that matters most. It controls:
 - which user it runs as
 - whether it uses CPU or NVIDIA CUDA
 - which Whisper model and limits it uses
+
+If you are using the packaged image instead of building from source, do the same edits in `docker-compose.ghcr.yml`.
 
 The first part most people need to change is the `volumes:` section:
 
@@ -205,14 +251,24 @@ mkdir -p /opt/subgen/monitor
 
 ### 7. Start Subgen
 
-From the repo folder:
+From the repo folder, if you are running from source:
 
 ```bash
 cd /opt/subgen
 docker compose up -d
 ```
 
-That starts the container in the background.
+If you are using the packaged image instead:
+
+```bash
+cd /opt/subgen
+docker compose -f docker-compose.ghcr.yml up -d
+```
+
+Both approaches start the container in the background. The difference is just where the custom Subgen logic comes from:
+
+- source install: from your local repo files
+- package install: from the prebuilt GHCR image
 
 ### 8. Check that the container is alive
 
