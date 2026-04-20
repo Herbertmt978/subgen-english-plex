@@ -12,6 +12,24 @@ The job it is meant to do is fairly narrow:
 
 It is not trying to be a universal Subgen starter kit. It is a practical setup for people who want this specific behaviour and would rather start from something lived-in than something generic.
 
+## Why this exists
+
+The original motivation was simple:
+
+- generate English subtitles locally for the media that is already on the server
+- stop depending on Bazarr to hunt for subtitles from outside sources
+- avoid turning subtitle generation into a bigger Radarr or Sonarr workflow problem
+
+Bazarr is useful if your main goal is fetching subtitle files that already exist somewhere else.
+
+This repo is for a different job:
+
+- if subtitles do not already exist, make them
+- if the audio is not English, translate it into English subtitles
+- keep doing that for newly added media without needing a separate subtitle-fetching stack
+
+If somebody already uses Radarr or Sonarr for downloads, that is fine. This setup just does not require them in order to keep subtitles flowing.
+
 Everything in this repo that looks like a path, username, hostname, or email address is an example placeholder. Nothing here is meant to be pasted into a live server unchanged.
 
 One practical consequence of that:
@@ -129,6 +147,33 @@ If you are running on an NVIDIA box instead, the usual changes are:
 - a larger model such as `large-v3-turbo`
 
 That is closer to the kind of move you would make if you want Subgen off the Plex CPU and onto a separate GPU-backed VM.
+
+## Choosing a Whisper model
+
+If you only want one short recommendation:
+
+- `medium` is the sensible CPU default
+- `large-v3-turbo` is the sensible NVIDIA default
+- `large-v3` is the "push accuracy first" option if you have the hardware for it
+
+Very roughly, the model ladder looks like this:
+
+- `small`
+  Good for low-power CPU boxes, testing, or a server where subtitles are helpful but not mission-critical.
+- `medium`
+  The usual middle ground for CPU installs. Slower than `small`, but noticeably better on messy real media.
+- `large-v3-turbo`
+  Usually the sweet spot on NVIDIA. Much easier to live with than full `large-v3`, with only a small quality trade-off.
+- `large-v3`
+  The "I care more about accuracy than patience" option. Best suited to a stronger NVIDIA setup.
+- `distil-large-v3`
+  Fast on GPU, but mainly aimed at English speech recognition rather than this repo's multilingual-to-English translation workflow.
+
+One important trap to avoid:
+
+- do not pick the English-only `.en` models if your plan is to translate non-English audio into English subtitles
+
+There is a longer plain-English model guide in [docs/CONFIGURATION.md](./docs/CONFIGURATION.md).
 
 ## First-time setup
 

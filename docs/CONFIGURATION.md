@@ -69,9 +69,52 @@ The rough trade-off is:
 `medium` is the default here because it is a decent middle ground for a home Plex server. It is good enough to be useful without feeling needlessly heavy.
 
 If you want it gentler on the CPU, try `small`.
-If you want to push accuracy harder and have CPU to spare, try `large-v3-turbo`.
+If you want to push quality harder and the machine can afford it, move up to `large-v3-turbo` or `large-v3`.
 
 If you are on an NVIDIA GPU, `large-v3-turbo` is often the more sensible place to start.
+
+## Picking a Whisper model on purpose
+
+This repo is built around one specific outcome:
+
+- make English subtitles for mixed-language media libraries
+- translate non-English speech into English when needed
+
+That means the "best" model is not just about speed. It is about whether the model is a good fit for multilingual media and translation-heavy use.
+
+If you want the shortest version:
+
+- CPU box: start with `medium`
+- stronger CPU box but you still want to be cautious: try `small`
+- NVIDIA box: start with `large-v3-turbo`
+- accuracy-first NVIDIA box: try `large-v3`
+- translation-first setup: avoid the English-only `.en` models
+
+Here is the practical version:
+
+| Model | Best fit | Hardware feel | Pros | Cons |
+| --- | --- | --- | --- | --- |
+| `small` | Light-duty home server, testing, or older CPU box | Comfortable on CPU | Faster and lighter than `medium` | More likely to struggle with noisy audio, accents, overlapping speech, or awkward mixes |
+| `medium` | General home server use | Good CPU default | Best balance for CPU installs in this repo | Still noticeable on busy servers while working |
+| `large-v3-turbo` | Main recommendation for NVIDIA hosts | Happiest on CUDA | Very strong quality with much better speed than full `large-v3` | Heavier than `medium`, still more GPU-oriented than CPU-friendly |
+| `large-v3` | Accuracy-first setup | Best on a stronger NVIDIA GPU | Usually the best quality option in this family | Slowest and heaviest practical choice here |
+| `distil-large-v3` | Fast English ASR on GPU | Good on CUDA | Fast and efficient for English transcription | Not my first pick for this repo because it is aimed at English speech recognition rather than multilingual translation |
+
+A few plain-English rules help more than a giant benchmark table:
+
+- If the server is mostly CPU and also runs Plex, `medium` is the safe place to start.
+- If the machine has a real NVIDIA GPU available to Docker, `large-v3-turbo` is usually the nicest upgrade path.
+- If you care most about squeezing out the last bit of accuracy and the machine can afford it, move to `large-v3`.
+- If you only want a very light test run, `small` is fine, but do not judge the whole idea by `small` quality alone.
+
+Two model choices are worth calling out as bad fits for this repo:
+
+- English-only `.en` checkpoints
+  These are fine for English transcription, but they are the wrong shape for a setup that needs to hear non-English audio and turn it into English subtitles.
+- `distil-large-v3` for a translation-first library
+  It is a respectable fast model, but it is mainly positioned as a drop-in English ASR option rather than a multilingual translation workhorse.
+
+If you want the official upstream references for the model names and runtime behaviour, check the [faster-whisper README](https://github.com/SYSTRAN/faster-whisper) and the [distil-large-v3 model card](https://huggingface.co/distil-whisper/distil-large-v3).
 
 ## `WHISPER_THREADS=8`
 
