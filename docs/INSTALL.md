@@ -14,11 +14,41 @@ One thing to keep in mind before you start:
 - you are expected to swap those for the values that make sense on your own machine
 - the Python scripts are the real logic, but the deployment files are example scaffolding
 
+You now have two normal ways to install this repo:
+
+- source install: use `docker-compose.yml` and keep the override mounted from the local repo
+- package install: use `docker-compose.ghcr.yml` and pull the prebuilt image from GitHub Container Registry
+
+If you are new and just want the least fiddly setup, the package install is usually the easier one once the GHCR image exists.
+
 Before first boot, assume you need to review these three files:
 
-- `docker-compose.yml`
+- `docker-compose.yml` or `docker-compose.ghcr.yml`
 - `systemd/subgen-monitor.service`
 - `monitor.env` if you create one
+
+## 0. Decide whether you want source or package install
+
+### Source install
+
+Use this if you want the repo files on disk to be the thing Docker runs directly.
+
+That means:
+
+- `docker-compose.yml`
+- local bind mount of `./subgen_override.py`
+
+### Package install
+
+Use this if you want Docker to pull a ready-made image from GitHub Packages instead.
+
+That means:
+
+- `docker-compose.ghcr.yml`
+- image: `ghcr.io/herbertmt978/subgen-english-plex:latest`
+- no local bind mount for `subgen_override.py`
+
+If the GHCR package is still private, you will need to authenticate Docker to `ghcr.io` before pulling it.
 
 ## 1. Put the repo somewhere sensible
 
@@ -32,7 +62,7 @@ If you prefer another location, that is fine. Just remember to keep the systemd 
 
 ## 2. Check the media paths first
 
-Open `docker-compose.yml` and look at the `volumes:` section.
+Open the compose file you actually plan to use and look at the `volumes:` section.
 
 The example uses:
 
@@ -85,10 +115,16 @@ Subgen will download the Whisper models there the first time it needs them.
 
 ## 5. Start Subgen
 
-From the repo folder:
+If you are doing a source install, from the repo folder run:
 
 ```bash
 docker compose up -d
+```
+
+If you are doing a package install, run:
+
+```bash
+docker compose -f docker-compose.ghcr.yml up -d
 ```
 
 Then check the basics:
