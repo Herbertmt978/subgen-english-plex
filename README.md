@@ -79,11 +79,7 @@ Once the workflow publishes the image, people can either:
 - pull the package directly with Docker
 - or use `docker-compose.ghcr.yml` as their starting point instead of the source-based compose file
 
-One thing worth knowing up front:
-
-- container packages in GitHub Packages start out private by default
-- if you want strangers on the internet to pull the image without signing in, you need to set the package visibility to public after the first publish
-- if you leave it private, people will need a GitHub token with package read access
+The package is now public, so people can pull it without signing in to GitHub first.
 
 If you prefer the package route, the cleanest install path is usually:
 

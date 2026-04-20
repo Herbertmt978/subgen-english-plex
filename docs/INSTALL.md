@@ -48,7 +48,7 @@ That means:
 - image: `ghcr.io/herbertmt978/subgen-english-plex:latest`
 - no local bind mount for `subgen_override.py`
 
-If the GHCR package is still private, you will need to authenticate Docker to `ghcr.io` before pulling it.
+The GHCR package for this repo is public, so people can pull it without signing in to GitHub first.
 
 ## 1. Put the repo somewhere sensible
 
